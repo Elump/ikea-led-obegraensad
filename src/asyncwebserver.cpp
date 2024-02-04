@@ -1,5 +1,6 @@
 #include "asyncwebserver.h"
 #include "messages.h"
+#include "alexa.h"
 
 #ifdef ENABLE_SERVER
 
@@ -21,4 +22,8 @@ void initWebServer()
   server.begin();
 }
 
+#endif
+
+#ifdef ENABLE_ALEXA
+Espalexa espalexa;
 #endif

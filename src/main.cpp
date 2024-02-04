@@ -33,6 +33,7 @@
 #include "plugins/TickingClockPlugin.h"
 #endif
 
+#include "alexa.h"
 #include "asyncwebserver.h"
 #include "ota.h"
 #include "screen.h"
@@ -180,6 +181,13 @@ void setup()
   initWebServer();
 #endif
 
+// Alexa
+#ifdef ENABLE_ALEXA
+  espalexa.addDevice("IKEA Clock", AlexaChanged);
+  espalexa.begin(&server);
+  espalexa.loop();
+#endif 
+
   Screen.setup();
 
   pluginManager.addPlugin(new DrawPlugin());
@@ -221,4 +229,12 @@ void loop()
   cleanUpClients();
 #endif
   delay(1);
+}
+
+void AlexaChanged(uint8_t brightness)
+{
+  if (brightness >= 0 && brightness <= 255)
+  {
+    Screen.setBrightness(brightness);
+  }
 }
