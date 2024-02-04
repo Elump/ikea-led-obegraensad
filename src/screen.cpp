@@ -1,7 +1,7 @@
 #include "screen.h"
 #include <SPI.h>
 
-#define TIMER_INTERVAL_US 200
+#define TIMER_INTERVAL_US 400
 #define GRAY_LEVELS 64 // must be a power of two
 
 using namespace std;
@@ -144,9 +144,9 @@ void Screen_::setup()
 
 #ifdef ESP32
   SPI.begin(PIN_CLOCK, 34, PIN_DATA, 25); // SCLK, MISO, MOSI, SS
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0));
 
-  hw_timer_t *Screen_timer = timerBegin(0, 80, true);
+  hw_timer_t *Screen_timer = timerBegin(0, 40, true);
   timerAttachInterrupt(Screen_timer, &onScreenTimer, true);
   timerAlarmWrite(Screen_timer, TIMER_INTERVAL_US, true);
   timerAlarmEnable(Screen_timer);
