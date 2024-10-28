@@ -117,9 +117,9 @@ void Screen_::setPixelAtIndex(uint8_t index, uint8_t value, uint8_t brightness)
 
 void Screen_::setPixel(uint8_t x, uint8_t y, uint8_t value, uint8_t brightness)
 {
-  if (x >= 0 && y >= 0 && x < 16 && y < 16)
+  if (x >= 0 && y >= 0 && x < COLS && y < ROWS)
   {
-    this->renderBuffer_[y * 16 + x] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
+    this->renderBuffer_[y * COLS + x] = value <= 0 || brightness <= 0 ? 0 : (brightness > 255 ? 255 : brightness);
   }
 }
 
@@ -157,7 +157,9 @@ void ICACHE_RAM_ATTR Screen_::_render()
 {
   const auto buf = this->getRotatedRenderBuffer();
 
-  static unsigned char bits[ROWS * COLS / 8] = {0};
+  // SPI data needs to be 32-bit aligned, round up before divide
+  static unsigned long spi_bits[(ROWS * COLS + 8 * sizeof(unsigned long) - 1) / 8 / sizeof(unsigned long)] = {0};
+  unsigned char *bits = (unsigned char *)spi_bits;
   memset(bits, 0, ROWS * COLS / 8);
 
   static unsigned char counter = 0;
@@ -170,7 +172,7 @@ void ICACHE_RAM_ATTR Screen_::_render()
   counter += (256 / GRAY_LEVELS);
 
   digitalWrite(PIN_LATCH, LOW);
-  SPI.writeBytes(bits, sizeof(bits));
+  SPI.writeBytes(bits, sizeof(spi_bits));
   digitalWrite(PIN_LATCH, HIGH);
 #ifdef ESP8266
   timer1_write(100);
@@ -328,7 +330,7 @@ void Screen_::scrollText(std::string text, int delayTime, uint8_t brightness, ui
         { // so are we somewhere on screen with the char?
           // ensure that we have a defined char, lets take the first
           uint8_t currentChar = (((text[strPos] - currentFont.offset) < currentFont.data.size()) && (text[strPos] >= currentFont.offset)) ? text[strPos] : currentFont.offset;
-          // draw it
+
           Screen.drawCharacter(xPos, 4, Screen.readBytes(currentFont.data[currentChar - currentFont.offset]), 8);
         }
       }
@@ -342,7 +344,6 @@ void Screen_::scrollGraph(std::vector<int> graph, int miny, int maxy, int delayT
 {
   if (graph.size() <= 0)
   {
-    // Handle empty graph
     return;
   }
 
@@ -350,7 +351,7 @@ void Screen_::scrollGraph(std::vector<int> graph, int miny, int maxy, int delayT
   {
     this->clear();
 
-    int y1 = -999; // previous point.
+    int y1 = -999;
 
     for (int x = 0; x < ROWS; x++)
     {
@@ -365,7 +366,7 @@ void Screen_::scrollGraph(std::vector<int> graph, int miny, int maxy, int delayT
         {
           this->drawLine(x - 1, y1, x, y2, 1, brightness);
         }
-        else // first pixel on graph/on screen
+        else
         {
           this->setPixel(x, y2, 1, brightness);
         }

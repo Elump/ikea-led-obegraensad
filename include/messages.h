@@ -25,7 +25,6 @@ private:
   int previousSecond;
   int indicatorPixel;
 
-
 public:
   static Messages_ &getInstance();
 
@@ -41,6 +40,3 @@ public:
 };
 
 extern Messages_ &Messages;
-
-void handleMessage(AsyncWebServerRequest *request);
-void handleRemove(AsyncWebServerRequest *request);
