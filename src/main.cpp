@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <SPI.h>
+#include <BfButton.h>
 
 #ifdef ESP82666
 /* Fix duplicate defs of HTTP_GET, HTTP_POST, ... in ESPAsyncWebServer.h */
@@ -15,6 +16,7 @@
 #endif
 
 #include "PluginManager.h"
+#include "scheduler.h"
 
 #include "plugins/BreakoutPlugin.h"
 #include "plugins/CirclePlugin.h"
@@ -26,6 +28,7 @@
 #include "plugins/SnakePlugin.h"
 #include "plugins/StarsPlugin.h"
 #include "plugins/PongClockPlugin.h"
+#include "plugins/TickingClockPlugin.h"
 #include "plugins/DDPPlugin.h"
 
 #ifdef ENABLE_SERVER
@@ -34,7 +37,6 @@
 #include "plugins/ClockPlugin.h"
 #include "plugins/WeatherPlugin.h"
 #include "plugins/AnimationPlugin.h"
-#include "plugins/TickingClockPlugin.h"
 #endif
 
 #include "asyncwebserver.h"
@@ -43,6 +45,8 @@
 #include "secrets.h"
 #include "websocket.h"
 #include "messages.h"
+
+BfButton btn(BfButton::STANDALONE_DIGITAL, PIN_BUTTON, true, LOW);
 
 unsigned long previousMillis = 0;
 unsigned long interval = 30000;
@@ -108,7 +112,28 @@ void connectToWiFi()
   lastConnectionAttempt = millis();
 }
 
-void setup()
+void pressHandler(BfButton *btn, BfButton::press_pattern_t pattern)
+{
+  switch (pattern)
+  {
+  case BfButton::SINGLE_PRESS:
+    if (currentStatus != LOADING)
+    {
+      Scheduler.clearSchedule();
+      pluginManager.activateNextPlugin();
+    }
+    break;
+
+  case BfButton::LONG_PRESS:
+    if (currentStatus != LOADING)
+    {
+      pluginManager.activatePersistedPlugin();
+    }
+    break;
+  }
+}
+
+void baseSetup()
 {
   Serial.begin(115200);
 
@@ -116,7 +141,10 @@ void setup()
   pinMode(PIN_CLOCK, OUTPUT);
   pinMode(PIN_DATA, OUTPUT);
   pinMode(PIN_ENABLE, OUTPUT);
-  pinMode(PIN_BUTTON, INPUT_PULLUP);
+
+#if !defined(ESP32) && !defined(ESP8266)
+  Screen.setup();
+#endif
 
 // server
 #ifdef ENABLE_SERVER
@@ -129,9 +157,6 @@ void setup()
   initWebsocketServer(server);
   initWebServer();
 #endif
-
-  Screen.setup();
-
   pluginManager.addPlugin(new DrawPlugin());
   pluginManager.addPlugin(new BreakoutPlugin());
   pluginManager.addPlugin(new SnakePlugin());
@@ -141,31 +166,99 @@ void setup()
   pluginManager.addPlugin(new CirclePlugin());
   pluginManager.addPlugin(new RainPlugin());
   pluginManager.addPlugin(new FireworkPlugin());
-  pluginManager.addPlugin(new PongClockPlugin());
 
 #ifdef ENABLE_SERVER
   pluginManager.addPlugin(new BigClockPlugin());
   pluginManager.addPlugin(new ClockPlugin());
+  pluginManager.addPlugin(new PongClockPlugin());
+  pluginManager.addPlugin(new TickingClockPlugin());
   pluginManager.addPlugin(new WeatherPlugin());
   pluginManager.addPlugin(new AnimationPlugin());
-  pluginManager.addPlugin(new TickingClockPlugin());
   pluginManager.addPlugin(new DDPPlugin());
 #endif
 
   pluginManager.init();
+  Scheduler.init();
+
+  btn.onPress(pressHandler)
+      .onDoublePress(pressHandler)
+      .onPressFor(pressHandler, 1000);
 }
+
+#ifdef ESP32
+TaskHandle_t screenDrawingTaskHandle = NULL;
+
+void screenDrawingTask(void *parameter)
+{
+  Screen.setup();
+  for (;;)
+  {
+    pluginManager.runActivePlugin();
+    vTaskDelay(10);
+  }
+}
+
+void setup()
+{
+  baseSetup();
+  xTaskCreatePinnedToCore(
+      screenDrawingTask,
+      "screenDrawingTask",
+      10000,
+      NULL,
+      1,
+      &screenDrawingTaskHandle,
+      0);
+}
+#endif
+#ifdef ESP8266
+#include <Scheduler.h>
+void screenDrawingTask()
+{
+  Screen.setup();
+  pluginManager.runActivePlugin();
+  yield();
+}
+
+void setup()
+{
+  baseSetup();
+  Scheduler.start(&screenDrawingTask);
+}
+#endif
 
 void loop()
 {
+  static uint8_t taskCounter = 0;
+  const unsigned long currentMillis = millis();
+  btn.read();
 
-  Messages.scrollMessageEveryMinute();
-
+#if !defined(ESP32) && !defined(ESP8266)
   pluginManager.runActivePlugin();
+#endif
 
-  if (WiFi.status() != WL_CONNECTED && millis() - lastConnectionAttempt > connectionInterval)
+  if (currentStatus == NONE)
   {
-    Serial.println("Lost connection to Wi-Fi. Reconnecting...");
-    connectToWiFi();
+    Scheduler.update();
+
+    if ((taskCounter % 4) == 0)
+    {
+      Messages.scrollMessageEveryMinute();
+    }
+  }
+
+  if ((taskCounter % 16) == 0)
+  {
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      connectToWiFi();
+    }
+  }
+
+  taskCounter++;
+  if (taskCounter > 16)
+  {
+    taskCounter = 0;
   }
 
 #ifdef ENABLE_SERVER

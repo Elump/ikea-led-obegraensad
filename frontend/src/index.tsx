@@ -1,11 +1,11 @@
-/* @refresh reload */
 import { render } from 'solid-js/web';
 import { createSignal, Match, onCleanup, onMount, Switch } from 'solid-js';
 import './index.css';
 
 import { App } from './app';
 import { Creator } from './creator';
-import { StoreProvider } from './store';
+import { StoreProvider } from './contexts/store';
+import Scheduler from './scheduler';
 
 const Router = () => {
   const [hash, setHash] = createSignal(window.location.hash);
@@ -22,11 +22,16 @@ const Router = () => {
   });
 
   return (
-    <Switch fallback={<App />}>
-      <Match when={location() === '/creator'}>
-        <Creator />
-      </Match>
-    </Switch>
+    <div class="h-full">
+      <Switch fallback={<App />}>
+        <Match when={location() === '/creator'}>
+          <Creator />
+        </Match>
+        <Match when={location() === '/scheduler'}>
+          <Scheduler />
+        </Match>
+      </Switch>
+    </div>
   );
 };
 
@@ -36,5 +41,5 @@ render(
       <Router />
     </StoreProvider>
   ),
-  document.getElementById('app') as HTMLElement
+  document.getElementById('app') as HTMLElement,
 );

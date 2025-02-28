@@ -20,8 +20,7 @@ void initWebServer()
   server.on("/api/message", HTTP_GET, handleMessage);
   server.on("/api/removemessage", HTTP_GET, handleMessageRemove);
 
-  server.on("/api/status", HTTP_GET, handleGetStatus);
-  server.on("/api/metadata", HTTP_GET, handleGetMetadata);
+  server.on("/api/info", HTTP_GET, handleGetInfo);
 
   // Handle API request to set an active plugin by ID
   server.on("/api/plugin", HTTP_PATCH, handleSetPlugin);
@@ -29,6 +28,14 @@ void initWebServer()
   // Handle API request to set the brightness (0..255);
   server.on("/api/brightness", HTTP_PATCH, handleSetBrightness);
   server.on("/api/data", HTTP_GET, handleGetData);
+
+  // Scheduler
+  server.on("/api/schedule", HTTP_POST, handleSetSchedule);
+  server.on("/api/schedule/clear", HTTP_GET, handleClearSchedule);
+  server.on("/api/schedule/stop", HTTP_GET, handleStopSchedule);
+  server.on("/api/schedule/start", HTTP_GET, handleStartSchedule);
+
+  server.on("/api/storage/clear", HTTP_GET, handleClearStorage);
 
   server.begin();
 }

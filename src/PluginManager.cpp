@@ -1,4 +1,5 @@
 #include "PluginManager.h"
+#include "scheduler.h"
 
 Plugin::Plugin() : id(-1) {}
 
@@ -22,25 +23,22 @@ void PluginManager::init()
 {
     Screen.clear();
     std::vector<Plugin *> &allPlugins = pluginManager.getAllPlugins();
-    for (Plugin *plugin : allPlugins)
-    {
-        Serial.print("init plugin: ");
-        Serial.print(plugin->getName());
-        Serial.print(" id: ");
-        Serial.println(plugin->getId());
-    }
 
+    activatePersistedPlugin();
+}
+
+void PluginManager::activatePersistedPlugin()
+{
+    std::vector<Plugin *> &allPlugins = pluginManager.getAllPlugins();
 #ifdef ENABLE_STORAGE
-    storage.begin("led-wall", false);
-    Serial.print("restore plugin: ");
-    Serial.println(storage.getInt("current-plugin"));
-    pluginManager.setActivePluginById(storage.getInt("current-plugin"));
+    storage.begin("led-wall", true);
+    persistedPluginId = storage.getInt("current-plugin", allPlugins.at(0)->getId());
+    pluginManager.setActivePluginById(persistedPluginId);
     storage.end();
 #endif
-
     if (!activePlugin)
     {
-        pluginManager.setActivePluginById(1);
+        pluginManager.setActivePluginById(allPlugins.at(0)->getId());
     }
 }
 
@@ -50,9 +48,8 @@ void PluginManager::persistActivePlugin()
     storage.begin("led-wall", false);
     if (activePlugin)
     {
-        Serial.print("persist plugin: ");
-        Serial.println(activePlugin->getId());
-        storage.putInt("current-plugin", activePlugin->getId());
+        persistedPluginId = activePlugin->getId();
+        storage.putInt("current-plugin", persistedPluginId);
     }
     storage.end();
 #endif
@@ -71,6 +68,7 @@ void PluginManager::setActivePlugin(const char *pluginName)
     if (activePlugin)
     {
         activePlugin->teardown();
+        delay(100);
         activePlugin = nullptr;
     }
 
@@ -78,9 +76,6 @@ void PluginManager::setActivePlugin(const char *pluginName)
     {
         if (strcmp(plugin->getName(), pluginName) == 0)
         {
-            Serial.print("activate: ");
-            Serial.println(plugin->getName());
-
             Screen.clear();
             activePlugin = plugin;
             activePlugin->setup();
@@ -108,27 +103,12 @@ void PluginManager::setupActivePlugin()
     }
 }
 
-int modeButtonState = 0;
-int lastModeButtonState = 1;
-
 void PluginManager::runActivePlugin()
 {
-    if (currentStatus != LOADING)
+    if (activePlugin && currentStatus != UPDATE &&
+        currentStatus != LOADING && currentStatus != WSBINARY)
     {
-        modeButtonState = digitalRead(PIN_BUTTON);
-        if (modeButtonState != lastModeButtonState && modeButtonState == HIGH)
-        {
-            pluginManager.activateNextPlugin();
-        }
-        lastModeButtonState = modeButtonState;
-        currentStatus = NONE;
-    }
-    if (activePlugin)
-    {
-        if (currentStatus != UPDATE && currentStatus != LOADING && currentStatus != WSBINARY)
-        {
-            activePlugin->loop();
-        }
+        activePlugin->loop();
     }
 }
 
@@ -149,9 +129,6 @@ size_t PluginManager::getNumPlugins()
 
 void PluginManager::activateNextPlugin()
 {
-    Serial.print("next plugin: ");
-    Serial.println(activePlugin->getId() + 1);
-
     if (activePlugin)
     {
         if (activePlugin->getId() <= getNumPlugins() - 1)

@@ -1,5 +1,7 @@
 #include "webhandler.h"
 #include "messages.h"
+#include "scheduler.h"
+#include "websocket.h"
 
 // http://your-server/message?text=Hello&repeat=3&id=42&graph=1,2,3,4
 void handleMessage(AsyncWebServerRequest *request)
@@ -33,12 +35,17 @@ void handleMessage(AsyncWebServerRequest *request)
         token = strtok(nullptr, ",");
     }
 
-    // Uncomment this to thee what charcode comes in
-    //  for(int i = 0;i<text.size();i++)Screen.scrollText(std::to_string(text[i]));
-
+    // Add the message
     Messages.add(text, repeat, id, delay, graph, miny, maxy);
 
-    request->send(200, "text/plain", "Message received");
+    // JSON response
+    StaticJsonDocument<256> jsonResponse;
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Message received";
+
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
 }
 
 // http://your-server/removemessage?id=42
@@ -46,7 +53,14 @@ void handleMessageRemove(AsyncWebServerRequest *request)
 {
     int id = request->arg("id").toInt();
     Messages.remove(id);
-    request->send(200, "text/plain", "Message received");
+
+    StaticJsonDocument<256> jsonResponse;
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Message removed";
+
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
 }
 
 void handleSetPlugin(AsyncWebServerRequest *request)
@@ -54,18 +68,22 @@ void handleSetPlugin(AsyncWebServerRequest *request)
     int id = request->arg("id").toInt();
     pluginManager.setActivePluginById(id);
 
+    StaticJsonDocument<256> jsonResponse;
+
     if (pluginManager.getActivePlugin() && pluginManager.getActivePlugin()->getId() == id)
     {
-        request->send(200, "text/plain");
+        jsonResponse["status"] = "success";
+        jsonResponse["message"] = "Plugin set successfully";
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(200, "application/json", output);
     }
     else
     {
-        StaticJsonDocument<256> jsonDocument;
-        jsonDocument["error"] = true;
-        jsonDocument["errormessage"] = "could not set plugin to id " + std::to_string(id);
-
+        jsonResponse["error"] = true;
+        jsonResponse["errormessage"] = "Could not set plugin to id " + std::to_string(id);
         String output;
-        serializeJson(jsonDocument, output);
+        serializeJson(jsonResponse, output);
         request->send(422, "application/json", output);
     }
 }
@@ -74,21 +92,26 @@ void handleSetBrightness(AsyncWebServerRequest *request)
 {
     int value = request->arg("value").toInt();
 
+    StaticJsonDocument<256> jsonResponse;
+
     if (value < 0 || value > 255)
     {
-        StaticJsonDocument<256> jsonDocument;
-        jsonDocument["error"] = true;
-        jsonDocument["errormessage"] = "invalid brightness value: " + std::to_string(value) + " - must be between 0 and 255.";
-
+        jsonResponse["error"] = true;
+        jsonResponse["errormessage"] = "Invalid brightness value: " + std::to_string(value) + " - must be between 0 and 255.";
         String output;
-        serializeJson(jsonDocument, output);
+        serializeJson(jsonResponse, output);
         request->send(422, "application/json", output);
         return;
     }
 
-    Screen.setBrightness(value);
+    Screen.setBrightness(value, true);
 
-    request->send(200, "text/plain");
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Brightness set successfully";
+
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
 }
 
 void handleGetData(AsyncWebServerRequest *request)
@@ -111,46 +134,152 @@ void handleGetData(AsyncWebServerRequest *request)
     }
     catch (const std::exception &e)
     {
-        request->send(500, "text/plain", e.what());
+        StaticJsonDocument<256> jsonResponse;
+        jsonResponse["error"] = true;
+        jsonResponse["errormessage"] = e.what();
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(500, "application/json", output);
     }
 }
 
-void handleGetStatus(AsyncWebServerRequest *request)
-{
-    DynamicJsonDocument jsonDocument(6144);
-    jsonDocument["status"] = currentStatus;
-    jsonDocument["plugin"] = pluginManager.getActivePlugin()->getId();
-    jsonDocument["rotation"] = Screen.currentRotation;
-    jsonDocument["brightness"] = Screen.getCurrentBrightness();
-
-    String output;
-    serializeJson(jsonDocument, output);
-
-    // Send the JSON response to the client
-    request->send(200, "application/json", output);
-}
-
-void handleGetMetadata(AsyncWebServerRequest *request)
+void handleGetInfo(AsyncWebServerRequest *request)
 {
     DynamicJsonDocument jsonDocument(6144);
     jsonDocument["rows"] = ROWS;
     jsonDocument["cols"] = COLS;
+    jsonDocument["status"] = currentStatus;
+    jsonDocument["plugin"] = pluginManager.getActivePlugin()->getId();
+    jsonDocument["rotation"] = Screen.currentRotation;
+    jsonDocument["brightness"] = Screen.getCurrentBrightness();
+    jsonDocument["scheduleActive"] = Scheduler.isActive;
+
+    JsonArray scheduleArray = jsonDocument.createNestedArray("schedule");
+    for (const auto &item : Scheduler.schedule)
+    {
+        JsonObject scheduleItem = scheduleArray.createNestedObject();
+        scheduleItem["pluginId"] = item.pluginId;
+        scheduleItem["duration"] = item.duration / 1000; // Convert milliseconds to seconds
+    }
 
     JsonArray plugins = jsonDocument.createNestedArray("plugins");
 
     std::vector<Plugin *> &allPlugins = pluginManager.getAllPlugins();
 
-    // Loop through each plugin and add its details to the JSON document
     for (Plugin *plugin : allPlugins)
     {
         JsonObject object = plugins.createNestedObject();
-
         object["id"] = plugin->getId();
         object["name"] = plugin->getName();
     }
 
     String output;
     serializeJson(jsonDocument, output);
+    jsonDocument.clear();
 
     request->send(200, "application/json", output);
+}
+
+void handleSetSchedule(AsyncWebServerRequest *request)
+{
+    bool scheduleIsSet = Scheduler.setScheduleByJSONString(request->arg("schedule"));
+
+    StaticJsonDocument<256> jsonResponse;
+    if (!scheduleIsSet)
+    {
+        jsonResponse["error"] = true;
+        jsonResponse["message"] = "Schedule cannot be set";
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(400, "application/json", output);
+        return;
+    }
+
+    Scheduler.start();
+    sendInfo();
+
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Schedule updated";
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
+}
+
+void handleClearSchedule(AsyncWebServerRequest *request)
+{
+    Scheduler.clearSchedule(true);
+    sendInfo();
+
+    StaticJsonDocument<256> jsonResponse;
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Schedule cleared";
+
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
+}
+
+void handleStopSchedule(AsyncWebServerRequest *request)
+{
+    StaticJsonDocument<256> jsonResponse;
+    if (!Scheduler.schedule.empty())
+    {
+        Scheduler.stop();
+        sendInfo();
+
+        jsonResponse["status"] = "success";
+        jsonResponse["message"] = "Schedule stopped";
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(200, "application/json", output);
+    }
+    else
+    {
+        jsonResponse["error"] = true;
+        jsonResponse["message"] = "No schedule found";
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(404, "application/json", output);
+    }
+}
+
+void handleStartSchedule(AsyncWebServerRequest *request)
+{
+    StaticJsonDocument<256> jsonResponse;
+    if (!Scheduler.schedule.empty())
+    {
+        Scheduler.start();
+        sendInfo();
+
+        jsonResponse["status"] = "success";
+        jsonResponse["message"] = "Schedule started";
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(200, "application/json", output);
+    }
+    else
+    {
+        jsonResponse["error"] = true;
+        jsonResponse["message"] = "No schedule found";
+        String output;
+        serializeJson(jsonResponse, output);
+        request->send(404, "application/json", output);
+    }
+}
+
+void handleClearStorage(AsyncWebServerRequest *request)
+{
+#ifdef ENABLE_STORAGE
+    storage.begin("led-wall", false);
+    storage.clear();
+    storage.end();
+
+    StaticJsonDocument<256> jsonResponse;
+    jsonResponse["status"] = "success";
+    jsonResponse["message"] = "Storage cleared";
+
+    String output;
+    serializeJson(jsonResponse, output);
+    request->send(200, "application/json", output);
+#endif
 }
