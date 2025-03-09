@@ -41,6 +41,8 @@ private:
 public:
   static Screen_ &getInstance();
 
+  volatile bool ScreenIsUpdated = true;  // Screen Update Status will pause screen rotation during screen update
+
   Screen_(const Screen_ &) = delete;
   Screen_ &operator=(const Screen_ &) = delete;
 
@@ -72,7 +74,9 @@ public:
   void drawRectangle(int x, int y, int width, int height, bool fill, int ledStatus, uint8_t brightness = 255);
   void drawCharacter(int x, int y, std::vector<int> bits, int bitCount, uint8_t brightness = 255);
   void drawNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness = 255);
+  void drawNarrowNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness = 255);
   void drawBigNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness = 255);
+  void drawBigModNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness = 255);
   void drawWeather(int x, int y, int weather, uint8_t brightness = 255);
   std::vector<int> readBytes(std::vector<int> bytes);
 

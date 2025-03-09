@@ -8,7 +8,8 @@
 #define PIN_DATA 27
 #define PIN_CLOCK 14
 #define PIN_LATCH 12
-#define PIN_BUTTON 16
+//#define PIN_BUTTON 16
+#define PIN_BUTTON 13
 #endif
 
 #ifdef ESP8266
@@ -36,19 +37,18 @@
 #define ROWS 16
 
 // set your city or coords (https://github.com/chubin/wttr.in)
-#define WEATHER_LOCATION "Hamburg"
+//#define WEATHER_LOCATION "Rottendorf"
+#define WEATHER_LOCATION "Kurnach"
 
 // name of WiFi created by the device if no known WiFi is available
-#define WIFI_MANAGER_SSID "Ikea Display Setup WiFi"
+#define WIFI_MANAGER_SSID "Clock Setup"
 
 // use ALL of the following to use static IP config
-/*
-#define IP_ADDRESS "192.168.0.250"
+#define IP_ADDRESS "192.168.1.65"
 #define SUBNET "255.255.255.0"
-#define DNS1 "1.1.1.1"
-#define DNS2 "8.8.8.8"
-#define GWY "192.168.0.1"
-*/
+#define DNS1 "192.168.1.1"
+//#define DNS2 "8.8.8.8"
+#define GWY "192.168.1.1"
 
 // ---------------
 

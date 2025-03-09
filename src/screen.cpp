@@ -2,8 +2,8 @@
 #include <SPI.h>
 #include <algorithm>
 
-#define TIMER_INTERVAL_US 200
-#define GRAY_LEVELS 64 // must be a power of two
+#define TIMER_INTERVAL_US 1250
+#define GRAY_LEVELS 8 // must be a power of two
 
 using namespace std;
 
