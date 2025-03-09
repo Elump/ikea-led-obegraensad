@@ -1,8 +1,8 @@
 #include "screen.h"
 #include <SPI.h>
 
-#define TIMER_INTERVAL_US 400
-#define GRAY_LEVELS 64 // must be a power of two
+#define TIMER_INTERVAL_US 1250
+#define GRAY_LEVELS 8 // must be a power of two
 
 using namespace std;
 
@@ -33,15 +33,16 @@ void Screen_::setRenderBuffer(const uint8_t *renderBuffer, bool grays)
   }
 }
 
-uint8_t *Screen_::getRotatedRenderBuffer()
+uint8_t ICACHE_RAM_ATTR *Screen_::getRotatedRenderBuffer()
 {
-  for (int i = 0; i < ROWS * COLS; i++)
+  if (this->ScreenIsUpdated) 
   {
-    this->rotatedRenderBuffer_[i] = this->renderBuffer_[i];
+    for (int i = 0; i < ROWS * COLS; i++)
+    {
+      this->rotatedRenderBuffer_[i] = this->renderBuffer_[i];
+    }
+    this->rotate();
   }
-
-  this->rotate();
-
   return this->rotatedRenderBuffer_;
 }
 
@@ -75,7 +76,7 @@ void Screen_::loadFromStorage()
 #endif
 }
 
-void Screen_::rotate()
+void ICACHE_RAM_ATTR Screen_::rotate()
 {
   for (int row = 0; row < ROWS / 2; row++)
   {
@@ -144,9 +145,9 @@ void Screen_::setup()
 
 #ifdef ESP32
   SPI.begin(PIN_CLOCK, 34, PIN_DATA, 25); // SCLK, MISO, MOSI, SS
-  SPI.beginTransaction(SPISettings(5000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
 
-  hw_timer_t *Screen_timer = timerBegin(0, 40, true);
+  hw_timer_t *Screen_timer = timerBegin(2, 80, true);
   timerAttachInterrupt(Screen_timer, &onScreenTimer, true);
   timerAlarmWrite(Screen_timer, TIMER_INTERVAL_US, true);
   timerAlarmEnable(Screen_timer);
@@ -169,11 +170,18 @@ void ICACHE_RAM_ATTR Screen_::_render()
 
   counter += (256 / GRAY_LEVELS);
 
+  analogWrite(PIN_ENABLE, 255);
+
   digitalWrite(PIN_LATCH, LOW);
   SPI.writeBytes(bits, sizeof(bits));
   digitalWrite(PIN_LATCH, HIGH);
+
 #ifdef ESP8266
   timer1_write(100);
+#endif
+
+#ifndef ESP8266
+  analogWrite(PIN_ENABLE, 255 - this->brightness);
 #endif
 }
 
@@ -261,7 +269,7 @@ std::vector<int> Screen_::readBytes(std::vector<int> bytes)
   }
 
   return bits;
-};
+}
 
 void Screen_::drawNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness)
 {
@@ -282,7 +290,7 @@ void Screen_::setBrightness(uint8_t brightness)
 
 #ifndef ESP8266
   // analogWrite disable the timer1 interrupt on esp8266
-  analogWrite(PIN_ENABLE, 255 - brightness);
+  //analogWrite(PIN_ENABLE, 255 - brightness);
 #endif
 }
 

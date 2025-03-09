@@ -29,6 +29,8 @@
 #include "plugins/BigClockPlugin.h"
 #include "plugins/BigModClockPlugin.h"
 #include "plugins/ClockPlugin.h"
+#include "plugins/ClockLinePlugin.h"
+#include "plugins/h12ClockPlugin.h"
 #include "plugins/WeatherPlugin.h"
 #include "plugins/AnimationPlugin.h"
 #include "plugins/TickingClockPlugin.h"
@@ -80,7 +82,12 @@ void connectToWiFi()
 
   wifiManager.setSTAStaticIPConfig(ip, gwy, subnet, dns);
 #endif
-
+  
+  //addes time out fot WifiManager (PR#114)
+  wifiManager.setConnectRetries(10);
+  wifiManager.setConnectTimeout(10);
+  wifiManager.setConfigPortalTimeout(180);
+  wifiManager.setWiFiAutoReconnect(true);
   wifiManager.autoConnect(WIFI_MANAGER_SSID);
 
   if (MDNS.begin(WIFI_HOSTNAME))
@@ -163,6 +170,8 @@ void setup()
 {
   Serial.begin(115200);
 
+  analogWriteFrequency(300);
+
   pinMode(PIN_LATCH, OUTPUT);
   pinMode(PIN_CLOCK, OUTPUT);
   pinMode(PIN_DATA, OUTPUT);
@@ -184,23 +193,24 @@ void setup()
   Screen.setup();
 
   pluginManager.addPlugin(new DrawPlugin());
-  pluginManager.addPlugin(new BreakoutPlugin());
-  pluginManager.addPlugin(new SnakePlugin());
-  pluginManager.addPlugin(new GameOfLifePlugin());
-  pluginManager.addPlugin(new StarsPlugin());
-  pluginManager.addPlugin(new LinesPlugin());
-  pluginManager.addPlugin(new CirclePlugin());
-  pluginManager.addPlugin(new RainPlugin());
-  pluginManager.addPlugin(new FireworkPlugin());
-  pluginManager.addPlugin(new PongClockPlugin());
+  //pluginManager.addPlugin(new BreakoutPlugin());
+  //pluginManager.addPlugin(new SnakePlugin());
+  //pluginManager.addPlugin(new GameOfLifePlugin());
+  //pluginManager.addPlugin(new StarsPlugin());
+  //pluginManager.addPlugin(new LinesPlugin());
+  //pluginManager.addPlugin(new CirclePlugin());
+  //pluginManager.addPlugin(new RainPlugin());
+  //pluginManager.addPlugin(new FireworkPlugin());
+  //pluginManager.addPlugin(new PongClockPlugin());
 
 #ifdef ENABLE_SERVER
-  pluginManager.addPlugin(new BigClockPlugin());
-  pluginManager.addPlugin(new ClockPlugin());
+  //pluginManager.addPlugin(new BigClockPlugin());
+  //pluginManager.addPlugin(new ClockPlugin());
   pluginManager.addPlugin(new BigModClockPlugin());
+  //pluginManager.addPlugin(new ClockLinePlugin());
   pluginManager.addPlugin(new WeatherPlugin());
   pluginManager.addPlugin(new AnimationPlugin());
-  pluginManager.addPlugin(new TickingClockPlugin());
+  //pluginManager.addPlugin(new TickingClockPlugin());
 #endif
 
   pluginManager.init();
