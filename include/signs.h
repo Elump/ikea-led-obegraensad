@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <vector>
 #include "constants.h"
+#include <string>
 
 extern std::vector<int> letterU;
 extern std::vector<int> letterR;
@@ -18,8 +19,8 @@ extern std::vector<std::vector<int>> bigModNumbers;
 extern std::vector<std::vector<int>> lineAnimation;
 extern std::vector<std::vector<int>> weatherIcons;
 
-
-struct font {
+struct font
+{
     std::string name;
     int sizeX;
     int sizeY;

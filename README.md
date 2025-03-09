@@ -2,13 +2,13 @@
 
 Turn your OBEGRÄNSAD LED Wall Lamp into a live drawing canvas
 
-> 👉 This software is in an early stage and is my first of its kind. If you have anything to improve, I would be very happy about a PR or an issue :)
-
-> ⚠ Use this code and instructions at your own risk! The device could be damaged! ⚠
+> **⚠ Disclaimer**: Use this code and instructions at your own risk! Improper use may damage the device.
+> **Contribute**: Have suggestions or improvements? Feel free to submit a PR or open an issue. 😊
 
 ![ezgif-3-2019fca7a4](https://user-images.githubusercontent.com/15351728/200184222-a590575d-983d-4ab8-a322-c6bcf433d364.gif)
 
-## Features
+<details>
+  <summary><h1>Features</h1></summary>
 
 - Persist your drawing
 - Rotate image
@@ -18,6 +18,7 @@ Turn your OBEGRÄNSAD LED Wall Lamp into a live drawing canvas
 - Web-GUI
 - Load an image
 - Switch plugin by pressing the button
+- Schedule Plugins to switch after "n" seconds
 - Plugins
   - Draw
   - Game of life
@@ -30,12 +31,16 @@ Turn your OBEGRÄNSAD LED Wall Lamp into a live drawing canvas
   - Big Clock
   - Weather
   - Rain
-  - Animation with the "Creator"
+  - Animation with the "Animation Creator in Web UI"
   - Firework
+  - DDP
+  - Pong Clock
+
+</details>
 
 # Control the board
 
-https://user-images.githubusercontent.com/15351728/202763445-3275e4e9-d976-4e35-b0cf-9550b8561b4c.mp4
+https://github.com/user-attachments/assets/ddf91be1-2c95-4adc-b178-05b0781683cc
 
 You can control the lamp with a supplied web GUI.
 You can get the IP via serial output or you can search it in your router settings.
@@ -64,19 +69,32 @@ Above is a microcontroller. You have to remove it, because it contains the stand
 
 <img src="https://user-images.githubusercontent.com/86414213/205998862-e9962695-1328-49ea-b546-be592cbad3c2.jpg" width="90%" />
 
-## Clone repository and set variables
+### ESP32 Setup with VS Code and PlatformIO
 
-- Open folder with VSCode
-- Install platformIO (https://marketplace.visualstudio.com/items?itemName=platformio.platformio-ide)
-- Set all variables
-  - Wifi (on ESP8266)
-  - Upload
-  - Your Pins
-  - Latitude, Longitude, City etc. (https://github.com/chubin/wttr.in)
+1. **Prerequisites**
 
-Variables can be found inside `include/constants.h`.
+   - Install **[Visual Studio Code](https://code.visualstudio.com/)**.
+   - Install the **PlatformIO IDE** extension from the VS Code Extensions Marketplace.
 
-### Create `include/secrets.h`
+2. **Clone the Project**
+
+   - Download the project from GitHub and open it in VS Code. PlatformIO will automatically load dependencies.
+
+```bash
+git clone git@github.com:ph1p/ikea-led-obegraensad.git
+cd ikea-led-obegraensad
+code .
+```
+
+3. **Connect ESP32**
+
+   - Connect your ESP32 via USB.
+   - Check the COM port in the **PlatformIO Devices** tab.
+
+4. **Prepare the Project**
+
+   - Perform a `PlatformIO: Clean` (Recycle bin icon at the bottom right).
+   - Add a `secrets.h` file to the `include` directory. Modify passwords and save the file. Go in the next section for WiFi instructions.
 
 ```cpp
 #pragma once
@@ -92,7 +110,17 @@ Variables can be found inside `include/constants.h`.
 #define OTA_PASSWORD ""
 ```
 
-also set username and password inside `upload.py`, if you want to use OTA Updates.
+- Set variables inside `include/constants.h`.
+
+5. **Build the Project**
+
+   - Click the `PlatformIO Build` icon (bottom right corner).
+   - Check the log for missing libraries.
+     - Use the **Libraries** icon in PlatformIO to install required libraries.
+   - Repeat `Clean` and `Build` until the build succeeds.
+
+6. **Upload to ESP32**
+   - Click `PlatformIO Upload` (bottom right) to upload the firmware to the ESP32.
 
 ### Configuring WiFi with WiFi manager
 
@@ -125,6 +153,338 @@ Connect them like this and remember to set them in `include/constants.h` accordi
 ### Alternate Button Wiring
 
 Thanks to [RBEGamer](https://github.com/RBEGamer) who is showing in this [issue](https://github.com/ph1p/ikea-led-obegraensad/issues/79) how to use the original button wiring. With this solution you won't need the "BUTTON one end" and "BUTTON other end" soldering from the table above.
+# HTTP API Endpoints
+
+## Get Information
+
+Get current values and the (fixed) metadata, like number of rows and columns and a list of available plugins.
+
+```
+GET http://your-server/api/info
+```
+
+### Example `curl` Command:
+
+```bash
+curl http://your-server/api/info
+```
+
+### Response
+
+```json
+{
+  "rows": 16,
+  "cols": 16,
+  "status": "active",
+  "plugin": 3,
+  "rotation": 90,
+  "brightness": 255,
+  "scheduleActive": true,
+  "schedule": [
+    {
+      "pluginId": 2,
+      "duration": 60
+    },
+    {
+      "pluginId": 4,
+      "duration": 120
+    }
+  ],
+  "plugins": [
+    {"id": 1, "name": "Plugin One"},
+    {"id": 2, "name": "Plugin Two"},
+    {"id": 3, "name": "Plugin Three"}
+  ]
+}
+```
+
+---
+
+## Set Active Plugin by ID
+
+To set an active plugin by ID, make an HTTP PATCH request to the following endpoint, passing the parameter as a query string:
+
+```
+PATCH http://your-server/api/plugin
+```
+
+#### Example `curl` Command:
+
+```bash
+curl -X PATCH "http://your-server/api/plugin?id=7"
+```
+
+### Parameters
+
+- `id` (required): The ID of the plugin to set as active.
+
+### Response
+
+- **Success:**
+
+```json
+{
+  "status": "success",
+  "message": "Plugin set successfully"
+}
+```
+
+- **Error (Plugin not found):**
+
+```json
+{
+  "error": true,
+  "errormessage": "Could not set plugin to id 7"
+}
+```
+
+---
+
+## Set Brightness
+
+To set the brightness of the LED display, make an HTTP PATCH request to the following endpoint, passing the parameter as a query string:
+
+```
+PATCH http://your-server/api/brightness
+```
+
+#### Example `curl` Command:
+
+```bash
+curl -X PATCH "http://your-server/api/brightness?value=100"
+```
+
+### Parameters
+
+- `value` (required): The brightness value (0..255).
+
+### Response
+
+- **Success:**
+
+```json
+{
+  "status": "success",
+  "message": "Brightness set successfully"
+}
+```
+
+- **Error (Invalid Brightness Value):**
+
+```json
+{
+  "error": true,
+  "errormessage": "Invalid brightness value: 300 - must be between 0 and 255."
+}
+```
+
+---
+
+## Get Current Display Data
+
+To get the current displayed data as a byte-array, each byte representing the brightness value. Be aware that the global brightness value gets applied AFTER these values.
+
+```
+GET http://your-server/api/data
+```
+
+#### Example `curl` Command:
+
+```bash
+curl http://your-server/api/data
+```
+
+### Response (Raw Byte-Array Example)
+
+```json
+[255, 255, 255, 0, 128, 255, 255, 0, ...]
+```
+
+---
+
+# Plugin Scheduler
+
+It is possible to switch between plugins automatically.  
+You can define your schedule in the Web UI or just send an API call.
+
+### Set Schedule
+
+To define a schedule for switching between plugins automatically, make a POST request with your schedule data:
+
+```bash
+curl -X POST http://your-server/api/schedule -d 'schedule=[{"pluginId":10,"duration":2},{"pluginId":8,"duration":5}]'
+```
+
+#### Example Response
+
+```json
+{
+  "status": "success",
+  "message": "Schedule updated"
+}
+```
+
+### Clear Schedule
+
+To clear the existing schedule, make a GET request:
+
+```bash
+curl http://your-server/api/schedule/clear
+```
+
+#### Example Response
+
+```json
+{
+  "status": "success",
+  "message": "Schedule cleared"
+}
+```
+
+### Start Schedule
+
+To start the current schedule, make a GET request:
+
+```bash
+curl http://your-server/api/schedule/start
+```
+
+#### Example Response
+
+```json
+{
+  "status": "success",
+  "message": "Schedule started"
+}
+```
+
+### Stop Schedule
+
+To stop the current schedule, make a GET request:
+
+```bash
+curl http://your-server/api/schedule/stop
+```
+
+#### Example Response
+
+```json
+{
+  "status": "success",
+  "message": "Schedule stopped"
+}
+```
+
+---
+
+## Get Display Data
+
+To retrieve the current display data as a byte-array, each byte representing the brightness value. The global brightness is applied after these values.
+
+```
+GET http://your-server/api/data
+```
+
+#### Example `curl` Command:
+
+```bash
+curl http://your-server/api/data
+```
+
+### Response (Raw Byte-Array Example)
+
+```json
+[255, 255, 255, 0, 128, 255, 255, 0, ...]
+```
+
+---
+
+## Message Display
+
+To display a message on the LED display, users can make an HTTP GET request to the following endpoint:
+
+```
+GET http://your-server/api/message
+```
+
+### Parameters
+
+- `text` (optional): The text message to be displayed on the LED display.
+- `graph` (optional): A comma-separated list of integers representing a graph (0-15).
+- `miny` (optional): Scaling for the lower end of the graph, defaults to 0.
+- `maxy` (optional): Scaling for the upper end of the graph, defaults to 15.
+- `repeat` (optional): Number of times the message should be repeated. Default is 1. Set to `-1` for infinite.
+- `id` (optional): A unique identifier for the message.
+- `delay` (optional): Delay in ms between every scroll movement. Default is 50ms.
+
+#### Example `curl` Command:
+
+```bash
+curl "http://your-server/api/message?text=Hello&graph=8,5,2,1,0,0,1,4,7,10,13,14,15,15,14,11&repeat=3&id=1&delay=60"
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Message received"
+}
+```
+
+---
+
+## Message Removal
+
+To remove a message from the display, users can make an HTTP GET request to the following endpoint:
+
+```
+GET http://your-server/api/removemessage
+```
+
+### Parameters
+
+- `id` (required): The unique identifier of the message to be removed.
+
+#### Example `curl` Command:
+
+```bash
+curl "http://your-server/api/removemessage?id=1"
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Message removed"
+}
+```
+
+---
+
+## Clear Storage
+
+To clear the data storage:
+
+```
+GET http://your-server/api/clearstorage
+```
+
+#### Example `curl` Command:
+
+```bash
+curl http://your-server/api/clearstorage
+```
+
+### Response
+
+```json
+{
+  "status": "success",
+  "message": "Storage cleared"
+}
+```
 
 # Development
 
@@ -135,15 +495,15 @@ Thanks to [RBEGamer](https://github.com/RBEGamer) who is showing in this [issue]
 
 - `frontend` contains the web code.
 
-  - First run `npm i`
+  - First run `pnpm install`
   - Set your device IP inside the `.env` file
-  - Start the server with `npm run dev`
-  - Build it with `npm run build`. This command creates the `webgui.cpp` for you.
+  - Start the server with `pnpm dev`
+  - Build it with `pnpm build`. This command creates the `webgui.cpp` for you.
 
 - Build frontend using `Docker`
   - From the root of the repo, run `docker compose run node`
 
-## Plugins
+# Plugin Development
 
 1. Start by creating a new C++ file for your plugin. For example, let's call it plugins/MyPlugin.(cpp/h).
 
@@ -206,63 +566,9 @@ void MyPlugin::websocketHook(DynamicJsonDocument &request) {
 pluginManager.addPlugin(new MyPlugin());
 ```
 
-# External Call
-
-The LED Display service provides a simple yet powerful external interface that allows users to display messages and graphs on a 16x16 LED display. This functionality can be accessed through HTTP calls to the service endpoint.
-
-## Message Display
-
-To display a message on the LED display, users can make an HTTP GET request to the following endpoint:
-
-```
-http://your-server/message
-```
-
-### Parameters
-
-- `text` (optional): The text message to be displayed on the LED display.
-- `graph` (optional): A comma-separated list of integers representing a graph. The values should be in the range of 0 to 15 and will be visualized as a graph on the LED display.
-- `miny` (optional): scaling for lower end of the graph, defaults to 0
-- `maxy` (optional): scaling for upper end of the graph, defaults to 15
-- `repeat` (optional): The number of times the message should be repeated. If not provided, the default is 1. Set this value to -1 to repeat infinitely. While messages ar pending for display an indicator led in the upper left corner will flash.
-- `id` (optional): A unique identifier for the message. This can be used for later removal or modification of the message.
-- `delay` (optional): The number of ms of delay between every scroll move. Default is 50 ms.
-
-#### Example
-
-```
-GET http://your-server/message?text=Hello&graph=8,5,2,1,0,0,1,4,7,10,13,14,15,15,14,11&repeat=3&id=1&delay=60
-```
-
-This example will display the message "Hello" on the LED display with a corresponding graph, repeat it three times, and assign it the identifier 1, waits 60ms while scrolling.
-
-## Message Removal
-
-To remove a message from the display, users can make an HTTP GET request to the following endpoint:
-
-```
-http://your-server/removemessage
-```
-
-### Parameters
-
-- `id` (required): The unique identifier of the message to be removed.
-
-#### Example
-
-```
-GET http://your-server/removemessage?id=1
-```
-
-This example will remove the message with the identifier 1 from the LED display.
-
 # Troubleshooting
 
 ## Flickering panel
 
 - Check all soldering points, especially VCC
 - Check if the board gets enough power
-
-## Credits
-
-Breakout game https://elektro.turanis.de/html/prj104/index.html

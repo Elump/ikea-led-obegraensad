@@ -1,4 +1,5 @@
 #include "PluginManager.h"
+#include "scheduler.h"
 
 #ifdef ENABLE_SERVER
 
@@ -14,11 +15,21 @@ void sendInfo()
       jsonDocument["data"][j] = Screen.getRenderBuffer()[j];
     }
   }
+
   jsonDocument["status"] = currentStatus;
   jsonDocument["plugin"] = pluginManager.getActivePlugin()->getId();
   jsonDocument["event"] = "info";
   jsonDocument["rotation"] = Screen.currentRotation;
   jsonDocument["brightness"] = Screen.getCurrentBrightness();
+  jsonDocument["scheduleActive"] = Scheduler.isActive;
+
+  JsonArray scheduleArray = jsonDocument.createNestedArray("schedule");
+  for (const auto &item : Scheduler.schedule)
+  {
+    JsonObject scheduleItem = scheduleArray.createNestedObject();
+    scheduleItem["pluginId"] = item.pluginId;
+    scheduleItem["duration"] = item.duration / 1000; // Convert milliseconds to seconds
+  }
 
   JsonArray plugins = jsonDocument.createNestedArray("plugins");
 
@@ -30,10 +41,10 @@ void sendInfo()
     object["id"] = plugin->getId();
     object["name"] = plugin->getName();
   }
-
   String output;
   serializeJson(jsonDocument, output);
   ws.textAll(output);
+  jsonDocument.clear();
 }
 
 void sendMinimalInfo()
@@ -42,13 +53,15 @@ void sendMinimalInfo()
 
   jsonDocument["status"] = currentStatus;
   jsonDocument["plugin"] = pluginManager.getActivePlugin()->getId();
-  jsonDocument["event"] = "info";
+  jsonDocument["event"] = "minimal-info";
   jsonDocument["rotation"] = Screen.currentRotation;
   jsonDocument["brightness"] = Screen.getCurrentBrightness();
+  jsonDocument["scheduleActive"] = Scheduler.isActive;
 
   String output;
   serializeJson(jsonDocument, output);
   ws.textAll(output);
+  jsonDocument.clear();
 }
 
 void onWsEvent(
@@ -95,7 +108,7 @@ void onWsEvent(
           if (!strcmp(event, "plugin"))
           {
             int pluginId = wsRequest["plugin"];
-
+            Scheduler.clearSchedule();
             pluginManager.setActivePluginById(pluginId);
 
             sendMinimalInfo();
@@ -107,8 +120,7 @@ void onWsEvent(
           else if (!strcmp(event, "rotate"))
           {
             bool isRight = (bool)!strcmp(wsRequest["direction"], "right");
-
-            Screen.currentRotation = isRight ? (Screen.currentRotation > 3 ? 1 : Screen.currentRotation + 1) : (Screen.currentRotation <= 0 ? 3 : Screen.currentRotation - 1);
+            Screen.setCurrentRotation((Screen.currentRotation + (isRight ? 1 : 3)) % 4, true);
           }
           else if (!strcmp(event, "info"))
           {
@@ -116,7 +128,8 @@ void onWsEvent(
           }
           else if (!strcmp(event, "brightness"))
           {
-            Screen.setBrightness(wsRequest["brightness"].as<uint8_t>());
+            uint8_t brightness = wsRequest["brightness"].as<uint8_t>();
+            Screen.setBrightness(brightness, true);
           }
         }
       }
