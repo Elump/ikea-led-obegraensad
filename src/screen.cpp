@@ -279,6 +279,14 @@ void Screen_::drawNumbers(int x, int y, std::vector<int> numbers, uint8_t bright
   }
 }
 
+void Screen_::drawNarrowNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness)
+{
+  for (int i = 0; i < numbers.size(); i++)
+  {
+    this->drawCharacter(x + (i * 4), y, this->readBytes(smallNerrowNumbers[numbers.at(i)]), 4, brightness);
+  }
+}
+
 uint8_t Screen_::getCurrentBrightness() const
 {
   return this->brightness;
@@ -299,6 +307,14 @@ void Screen_::drawBigNumbers(int x, int y, std::vector<int> numbers, uint8_t bri
   for (int i = 0; i < numbers.size(); i++)
   {
     this->drawCharacter(x + (i * 8), y, this->readBytes(bigNumbers[numbers.at(i)]), 8, brightness);
+  }
+}
+
+void Screen_::drawBigModNumbers(int x, int y, std::vector<int> numbers, uint8_t brightness)
+{
+  for (int i = 0; i < numbers.size(); i++)
+  {
+    this->drawCharacter(x + (i * 8), y, this->readBytes(bigModNumbers[numbers.at(i)]), 8, brightness);
   }
 }
 

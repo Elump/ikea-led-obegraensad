@@ -206,6 +206,7 @@ void setup()
 #ifdef ENABLE_SERVER
   //pluginManager.addPlugin(new BigClockPlugin());
   //pluginManager.addPlugin(new ClockPlugin());
+  pluginManager.addPlugin(new h12ClockPlugin());
   pluginManager.addPlugin(new BigModClockPlugin());
   //pluginManager.addPlugin(new ClockLinePlugin());
   pluginManager.addPlugin(new WeatherPlugin());
