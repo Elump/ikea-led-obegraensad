@@ -1,6 +1,7 @@
 #include "screen.h"
 #include <SPI.h>
 #include <algorithm>
+#include "driver/ledc.h"
 
 #define TIMER_INTERVAL_US 1250
 #define GRAY_LEVELS 8 // must be a power of two
@@ -8,6 +9,8 @@
 #define PWM_FREQUENCY 250
 
 using namespace std;
+
+hw_timer_t *Screen_timer;
 
 uint8_t Screen_::getCurrentBrightness() const
 {
@@ -21,6 +24,7 @@ void Screen_::setBrightness(uint8_t brightness, bool shouldStore)
 #ifndef ESP8266
   // analogWrite disable the timer1 interrupt on esp8266
   analogWrite(PIN_ENABLE, 255 - brightness);
+  //ledcWrite(0, 255 - brightness);
 #endif
 
 #ifdef ENABLE_STORAGE
@@ -147,6 +151,10 @@ void Screen_::setup()
 {
 // set PWM frequency
 analogWriteFrequency(PWM_FREQUENCY);
+//ledcSetup(0, PWM_FREQUENCY, 8);
+//ledcAttachPin(PIN_ENABLE, 0);
+
+
 #ifdef ENABLE_STORAGE
   storage.begin("led-wall", true);
   setBrightness(storage.getUInt("brightness", 255));
@@ -172,7 +180,7 @@ analogWriteFrequency(PWM_FREQUENCY);
   SPI.begin(PIN_CLOCK, 34, PIN_DATA, 25); // SCLK, MISO, MOSI, SS
   SPI.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
 
-  hw_timer_t *Screen_timer = timerBegin(0, 80, true);
+  Screen_timer = timerBegin(0, 80, true);
   timerAttachInterrupt(Screen_timer, &onScreenTimer, true);
   timerAlarmWrite(Screen_timer, TIMER_INTERVAL_US, true);
   timerAlarmEnable(Screen_timer);
@@ -242,7 +250,9 @@ void Screen_::onScreenTimer()
 
 ICACHE_RAM_ATTR void Screen_::_render()
 {
-  const auto buf = getRotatedRenderBuffer();
+  // use of rotatedRenderBuffer_ directly
+  //const auto buf = getRotatedRenderBuffer();
+  const auto buf = rotatedRenderBuffer_;
 
   // SPI data needs to be 32-bit aligned, round up before divide
   static unsigned long spi_bits[(ROWS * COLS + 8 * sizeof(unsigned long) - 1) / 8 / sizeof(unsigned long)] = {0};
@@ -259,7 +269,14 @@ ICACHE_RAM_ATTR void Screen_::_render()
   counter += (256 / GRAY_LEVELS);
 
   digitalWrite(PIN_LATCH, LOW);
+  if (brightness_ > 127) {
+    analogWrite(PIN_ENABLE, 0);
+  }
+  else {
+    analogWrite(PIN_ENABLE, 255);
+  }
   SPI.writeBytes(bits, sizeof(spi_bits));
+  analogWrite(PIN_ENABLE, 255 - brightness_);
   digitalWrite(PIN_LATCH, HIGH);
 #ifdef ESP8266
   timer1_write(100);

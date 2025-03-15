@@ -202,6 +202,8 @@ void screenDrawingTask(void *parameter)
   for (;;)
   {
     pluginManager.runActivePlugin();
+    // add Screen rotation here
+    Screen.getRotatedRenderBuffer();
     vTaskDelay(10);
   }
 }

@@ -36,10 +36,12 @@ private:
   static void onScreenTimer();
   ICACHE_RAM_ATTR void _render();
   void rotate();
-  uint8_t *getRotatedRenderBuffer();
+  //uint8_t *getRotatedRenderBuffer();
 
 public:
   static Screen_ &getInstance();
+
+  uint8_t *getRotatedRenderBuffer(); //added
 
   volatile bool ScreenIsUpdated = true;  // Screen Update Status will pause screen rotation during screen update
 
