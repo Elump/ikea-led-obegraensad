@@ -164,26 +164,25 @@ void baseSetup()
 #endif
   pluginManager.addPlugin(new DrawPlugin());
   //pluginManager.addPlugin(new BreakoutPlugin());
-  //pluginManager.addPlugin(new SnakePlugin());
+  pluginManager.addPlugin(new SnakePlugin());
   //pluginManager.addPlugin(new GameOfLifePlugin());
   //pluginManager.addPlugin(new StarsPlugin());
   //pluginManager.addPlugin(new LinesPlugin());
   //pluginManager.addPlugin(new CirclePlugin());
   //pluginManager.addPlugin(new RainPlugin());
   //pluginManager.addPlugin(new FireworkPlugin());
-  //pluginManager.addPlugin(new PongClockPlugin());
 
 #ifdef ENABLE_SERVER
-  pluginManager.addPlugin(new PongClockPlugin());
   //pluginManager.addPlugin(new BigClockPlugin());
   //pluginManager.addPlugin(new ClockPlugin());
+  pluginManager.addPlugin(new PongClockPlugin());
   pluginManager.addPlugin(new h12ClockPlugin());
   pluginManager.addPlugin(new BigModClockPlugin());
-  //pluginManager.addPlugin(new ClockLinePlugin());
-  pluginManager.addPlugin(new WeatherPlugin());
-  pluginManager.addPlugin(new AnimationPlugin());
-  pluginManager.addPlugin(new DDPPlugin());
+  //pluginManager.addPlugin(new BigClockPlugin());
   //pluginManager.addPlugin(new TickingClockPlugin());
+  pluginManager.addPlugin(new WeatherPlugin());
+  //pluginManager.addPlugin(new AnimationPlugin());
+  //pluginManager.addPlugin(new DDPPlugin());
 #endif
 
   pluginManager.init();
