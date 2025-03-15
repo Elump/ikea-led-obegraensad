@@ -164,7 +164,7 @@ void baseSetup()
 #endif
   pluginManager.addPlugin(new DrawPlugin());
   //pluginManager.addPlugin(new BreakoutPlugin());
-  pluginManager.addPlugin(new SnakePlugin());
+  //pluginManager.addPlugin(new SnakePlugin());
   //pluginManager.addPlugin(new GameOfLifePlugin());
   //pluginManager.addPlugin(new StarsPlugin());
   //pluginManager.addPlugin(new LinesPlugin());

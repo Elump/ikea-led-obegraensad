@@ -3,10 +3,10 @@
 #include <algorithm>
 #include "driver/ledc.h"
 
-#define TIMER_INTERVAL_US 1250
-#define GRAY_LEVELS 8 // must be a power of two
+#define TIMER_INTERVAL_US 3332
+#define GRAY_LEVELS 4 // must be a power of two
 #define SPI_FREQUENCY 12000000
-#define PWM_FREQUENCY 250
+#define PWM_FREQUENCY 300
 
 using namespace std;
 
@@ -269,14 +269,7 @@ ICACHE_RAM_ATTR void Screen_::_render()
   counter += (256 / GRAY_LEVELS);
 
   digitalWrite(PIN_LATCH, LOW);
-  if (brightness_ > 127) {
-    analogWrite(PIN_ENABLE, 0);
-  }
-  else {
-    analogWrite(PIN_ENABLE, 255);
-  }
   SPI.writeBytes(bits, sizeof(spi_bits));
-  analogWrite(PIN_ENABLE, 255 - brightness_);
   digitalWrite(PIN_LATCH, HIGH);
 #ifdef ESP8266
   timer1_write(100);

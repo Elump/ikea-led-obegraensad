@@ -19,8 +19,8 @@ void BigModClockPlugin::loop()
   if (getLocalTime(&timeinfo))
   {
     //if (previousHour != timeinfo.tm_hour || previousMinutes != timeinfo.tm_min)
-    if (previousMinutes != timeinfo.tm_min)
-    {
+    //if (previousMinutes != timeinfo.tm_min)
+    //{
       std::vector<int> mm = {(timeinfo.tm_min - timeinfo.tm_min % 10) / 10, timeinfo.tm_min % 10};
       Screen.ScreenIsUpdated = false;
       //Screen.clear();
@@ -32,10 +32,10 @@ void BigModClockPlugin::loop()
       Screen.ScreenIsUpdated = true;
 
       previousMinutes = timeinfo.tm_min;
-    }
+    //}
     
-    if (previousHour != timeinfo.tm_hour)
-    {
+    //if (previousHour != timeinfo.tm_hour)
+    //{
       std::vector<int> hh = {(timeinfo.tm_hour - timeinfo.tm_hour % 10) / 10, timeinfo.tm_hour % 10};
       bool leadingZero = (hh.at(0) == 0);
       Screen.ScreenIsUpdated = false;
@@ -53,7 +53,7 @@ void BigModClockPlugin::loop()
       Screen.ScreenIsUpdated = true;
       
       previousHour = timeinfo.tm_hour;
-    }
+    //}
   }
 }
 
