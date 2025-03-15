@@ -4,6 +4,8 @@
 
 #define TIMER_INTERVAL_US 1250
 #define GRAY_LEVELS 8 // must be a power of two
+#define SPI_FREQUENCY 12000000
+#define PWM_FREQUENCY 250
 
 using namespace std;
 
@@ -143,6 +145,8 @@ void Screen_::persist()
 
 void Screen_::setup()
 {
+// set PWM frequency
+analogWriteFrequency(PWM_FREQUENCY);
 #ifdef ENABLE_STORAGE
   storage.begin("led-wall", true);
   setBrightness(storage.getUInt("brightness", 255));
@@ -157,7 +161,7 @@ void Screen_::setup()
 #ifdef ESP8266
   SPI.pins(PIN_CLOCK, 12, PIN_DATA, 15); // SCLK, MISO, MOSI, SS);
   SPI.begin();
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
 
   timer1_attachInterrupt(&onScreenTimer);
   timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
@@ -166,7 +170,7 @@ void Screen_::setup()
 
 #ifdef ESP32
   SPI.begin(PIN_CLOCK, 34, PIN_DATA, 25); // SCLK, MISO, MOSI, SS
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
 
   hw_timer_t *Screen_timer = timerBegin(0, 80, true);
   timerAttachInterrupt(Screen_timer, &onScreenTimer, true);
