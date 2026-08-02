@@ -35,12 +35,10 @@ private:
   static void onScreenTimer();
   void _render();
   void rotate();
-  //uint8_t *getRotatedRenderBuffer();
+  uint8_t *getRotatedRenderBuffer();
 
 public:
   static Screen_ &getInstance();
-
-  uint8_t *getRotatedRenderBuffer(); //added
 
   volatile bool ScreenIsUpdated = true;  // Screen Update Status will pause screen rotation during screen update
 
@@ -89,6 +87,14 @@ public:
                       int y,
                       const std::vector<int> &numbers,
                       uint8_t brightness = MAX_BRIGHTNESS);
+  void drawBigModNumbers(int x,
+                         int y,
+                         const std::vector<int> &numbers,
+                         uint8_t brightness = MAX_BRIGHTNESS);
+  void drawNarrowNumbers(int x,
+                         int y,
+                          const std::vector<int> &numbers,
+                          uint8_t brightness = MAX_BRIGHTNESS);
   void drawWeather(int x, int y, int weather, uint8_t brightness = MAX_BRIGHTNESS);
   std::vector<int> readBytes(const std::vector<int> &bytes);
   void scrollText(const std::string &text,

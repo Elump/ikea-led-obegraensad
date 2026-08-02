@@ -110,7 +110,7 @@ void connectToWiFi()
   //addes time out fot WifiManager (PR#114)
   wifiManager.setConnectRetries(10);
   wifiManager.setConnectTimeout(10);
-  wifiManager.setConfigPortalTimeout(180);
+  wifiManager.setConfigPortalTimeout(250);
   wifiManager.setWiFiAutoReconnect(true);
   wifiManager.autoConnect(WIFI_MANAGER_SSID);
 
@@ -194,31 +194,31 @@ void baseSetup()
   //pluginManager.addPlugin(new CirclePlugin());
   //pluginManager.addPlugin(new RainPlugin());
   //pluginManager.addPlugin(new FireworkPlugin());
-  pluginManager.addPlugin(new MatrixRainPlugin());
+  //pluginManager.addPlugin(new MatrixRainPlugin());
   pluginManager.addPlugin(new BlobPlugin());
-  pluginManager.addPlugin(new SpiralPlugin());
-  pluginManager.addPlugin(new WavePlugin());
-  pluginManager.addPlugin(new CheckerboardPlugin());
-  pluginManager.addPlugin(new RadarPlugin());
-  pluginManager.addPlugin(new BubblesPlugin());
-  pluginManager.addPlugin(new CometPlugin());
-  pluginManager.addPlugin(new FirefliesPlugin());
-  pluginManager.addPlugin(new MeteorShowerPlugin());
-  pluginManager.addPlugin(new ScanlinesPlugin());
-  pluginManager.addPlugin(new SparkleFieldPlugin());
-  pluginManager.addPlugin(new WaveBarsPlugin());
+  //pluginManager.addPlugin(new SpiralPlugin());
+  //pluginManager.addPlugin(new WavePlugin());
+  //pluginManager.addPlugin(new CheckerboardPlugin());
+  //pluginManager.addPlugin(new RadarPlugin());
+  //pluginManager.addPlugin(new BubblesPlugin());
+  //pluginManager.addPlugin(new CometPlugin());
+  //pluginManager.addPlugin(new FirefliesPlugin());
+  //pluginManager.addPlugin(new MeteorShowerPlugin());
+  //pluginManager.addPlugin(new ScanlinesPlugin());
+  //pluginManager.addPlugin(new SparkleFieldPlugin());
+  //pluginManager.addPlugin(new WaveBarsPlugin());
 
 #ifdef ENABLE_SERVER
-  //pluginManager.addPlugin(new BigClockPlugin());
+  pluginManager.addPlugin(new BigClockPlugin());
   //pluginManager.addPlugin(new ClockPlugin());
-  pluginManager.addPlugin(new PongClockPlugin());
+  //pluginManager.addPlugin(new PongClockPlugin());
   pluginManager.addPlugin(new h12ClockPlugin());
   pluginManager.addPlugin(new BigModClockPlugin());
   //pluginManager.addPlugin(new TickingClockPlugin());
   pluginManager.addPlugin(new WeatherPlugin());
   //pluginManager.addPlugin(new AnimationPlugin());
   //pluginManager.addPlugin(new DDPPlugin());
-  pluginManager.addPlugin(new ArtNetPlugin());
+  //pluginManager.addPlugin(new ArtNetPlugin());
 #endif
 
   Screen.clear();
@@ -238,9 +238,7 @@ void screenDrawingTask(void *parameter)
   {
     pluginManager.runActivePlugin();
     
-    // add Screen rotation here
-    Screen.getRotatedRenderBuffer();
-    vTaskDelay(10);
+    vTaskDelay(1);
   }
 }
 

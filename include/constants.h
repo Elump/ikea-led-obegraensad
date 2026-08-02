@@ -50,11 +50,11 @@ constexpr uint16_t TOTAL_PIXELS = ROWS * COLS;
 #define WIFI_MANAGER_SSID "Clock Setup"
 
 // use ALL of the following to use static IP config
-#define IP_ADDRESS "192.168.1.65"
+#define IP_ADDRESS "192.168.179.190"
 #define SUBNET "255.255.255.0"
-#define DNS1 "192.168.1.1"
+#define DNS1 "192.168.179.1"
 //#define DNS2 "8.8.8.8"
-#define GWY "192.168.1.1"
+#define GWY "192.168.179.1"
 
 // ---------------
 

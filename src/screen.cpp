@@ -4,10 +4,9 @@
 #include <algorithm>
 #include "driver/ledc.h"
 
-#define TIMER_INTERVAL_US 3332
-#define GRAY_LEVELS 4 // must be a power of two
-#define SPI_FREQUENCY 12000000
-#define PWM_FREQUENCY 300
+#define TIMER_INTERVAL_US 200
+#define GRAY_LEVELS 64 // must be a power of two
+#define SPI_FREQUENCY 10000000
 
 using namespace std;
 
@@ -121,12 +120,6 @@ void Screen_::persist()
 
 void Screen_::setup()
 {
-// set PWM frequency
-analogWriteFrequency(PWM_FREQUENCY);
-//ledcSetup(0, PWM_FREQUENCY, 8);
-//ledcAttachPin(PIN_ENABLE, 0);
-
-
 #ifdef ENABLE_STORAGE
   storage.begin("led-wall", true);
   setBrightness(storage.getUInt("brightness", MAX_BRIGHTNESS));
@@ -406,7 +399,7 @@ void Screen_::drawNarrowNumbers(int x, int y, const std::vector<int> &numbers, u
 {
   for (int i = 0; i < numbers.size(); i++)
   {
-    this->drawCharacter(x + (i * 4), y, this->readBytes(smallNerrowNumbers[numbers.at(i)]), 4, brightness);
+    drawCharacter(x + (i * 4), y, readBytes(smallNerrowNumbers[numbers.at(i)]), 4, brightness);
   }
 }
 
@@ -422,7 +415,7 @@ void Screen_::drawBigModNumbers(int x, int y, const std::vector<int> &numbers, u
 {
   for (int i = 0; i < numbers.size(); i++)
   {
-    this->drawCharacter(x + (i * 8), y, this->readBytes(bigModNumbers[numbers.at(i)]), 8, brightness);
+    drawCharacter(x + (i * 8), y, readBytes(bigModNumbers[numbers.at(i)]), 8, brightness);
   }
 }
 
