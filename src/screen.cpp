@@ -2,11 +2,16 @@
 #include "constants.h"
 #include <SPI.h>
 #include <algorithm>
+#include "driver/ledc.h"
 
-#define TIMER_INTERVAL_US 200
-#define GRAY_LEVELS 64 // must be a power of two
+#define TIMER_INTERVAL_US 3332
+#define GRAY_LEVELS 4 // must be a power of two
+#define SPI_FREQUENCY 12000000
+#define PWM_FREQUENCY 300
 
 using namespace std;
+
+hw_timer_t *Screen_timer;
 
 uint8_t Screen_::getCurrentBrightness() const
 {
@@ -116,6 +121,12 @@ void Screen_::persist()
 
 void Screen_::setup()
 {
+// set PWM frequency
+analogWriteFrequency(PWM_FREQUENCY);
+//ledcSetup(0, PWM_FREQUENCY, 8);
+//ledcAttachPin(PIN_ENABLE, 0);
+
+
 #ifdef ENABLE_STORAGE
   storage.begin("led-wall", true);
   setBrightness(storage.getUInt("brightness", MAX_BRIGHTNESS));
@@ -134,7 +145,7 @@ void Screen_::setup()
 
   SPI.pins(PIN_CLOCK, 12, PIN_DATA, 15); // SCLK, MISO, MOSI, SS);
   SPI.begin();
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
+  SPI.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
 
   timer1_attachInterrupt(&onScreenTimer);
   timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
@@ -142,15 +153,22 @@ void Screen_::setup()
 #endif
 
 #ifdef ESP32
+  //SPI.begin(PIN_CLOCK, 34, PIN_DATA, 25); // SCLK, MISO, MOSI, SS
+  //SPI.beginTransaction(SPISettings(SPI_FREQUENCY, MSBFIRST, SPI_MODE0));
+  //new with 08 2026
   // Initialize control pins
   pinMode(PIN_LATCH, OUTPUT);
   pinMode(PIN_ENABLE, OUTPUT);
   digitalWrite(PIN_LATCH, LOW);
   digitalWrite(PIN_ENABLE, LOW);
-
   SPI.begin(PIN_CLOCK, -1, PIN_DATA, -1); // SCLK, MISO, MOSI, SS (-1 for unused pins)
   SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
 
+  //Screen_timer = timerBegin(0, 80, true);
+  //timerAttachInterrupt(Screen_timer, &onScreenTimer, true);
+  //timerAlarmWrite(Screen_timer, TIMER_INTERVAL_US, true);
+  //timerAlarmEnable(Screen_timer);
+  //new with 08 2026
   hw_timer_t *Screen_timer = timerBegin(1000000);
   timerAttachInterrupt(Screen_timer, &onScreenTimer);
   timerAlarm(Screen_timer, TIMER_INTERVAL_US, true, 0);
@@ -384,11 +402,27 @@ void Screen_::drawNumbers(int x, int y, const std::vector<int> &numbers, uint8_t
   }
 }
 
+void Screen_::drawNarrowNumbers(int x, int y, const std::vector<int> &numbers, uint8_t brightness)
+{
+  for (int i = 0; i < numbers.size(); i++)
+  {
+    this->drawCharacter(x + (i * 4), y, this->readBytes(smallNerrowNumbers[numbers.at(i)]), 4, brightness);
+  }
+}
+
 void Screen_::drawBigNumbers(int x, int y, const std::vector<int> &numbers, uint8_t brightness)
 {
   for (int i = 0; i < numbers.size(); i++)
   {
     drawCharacter(x + (i * 8), y, readBytes(bigNumbers[numbers.at(i)]), 8, brightness);
+  }
+}
+
+void Screen_::drawBigModNumbers(int x, int y, const std::vector<int> &numbers, uint8_t brightness)
+{
+  for (int i = 0; i < numbers.size(); i++)
+  {
+    this->drawCharacter(x + (i * 8), y, this->readBytes(bigModNumbers[numbers.at(i)]), 8, brightness);
   }
 }
 
