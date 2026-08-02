@@ -7,8 +7,13 @@ Messages_ &Messages_::getInstance()
   return instance;
 }
 
-void Messages_::add(std::string text, int repeat, int id, int delay,
-                    std::vector<int> graph, int miny, int maxy)
+void Messages_::add(std::string text,
+                    int repeat,
+                    int id,
+                    int delay,
+                    std::vector<int> graph,
+                    int miny,
+                    int maxy)
 {
   // First remove any existing message with same id
   remove(id);
@@ -37,9 +42,9 @@ void Messages_::add(std::string text, int repeat, int id, int delay,
 void Messages_::remove(int id)
 {
   // Find and remove message with matching id
-  auto it = std::find_if(activeMessages.begin(), activeMessages.end(),
-                         [id](const Message *msg)
-                         { return msg->id == id; });
+  auto it = std::find_if(activeMessages.begin(), activeMessages.end(), [id](const Message *msg) {
+    return msg->id == id;
+  });
 
   if (it != activeMessages.end())
   {
@@ -50,8 +55,6 @@ void Messages_::remove(int id)
 
 void Messages_::scroll()
 {
-  Screen.persist();
-
   for (auto it = activeMessages.begin(); it != activeMessages.end();)
   {
     Message *msg = *it;
@@ -79,8 +82,6 @@ void Messages_::scroll()
       ++it;
     }
   }
-
-  Screen.loadFromStorage();
 }
 
 void Messages_::scrollMessageEveryMinute()
@@ -99,8 +100,12 @@ void Messages_::scrollMessageEveryMinute()
     {
       if (!activeMessages.empty())
       {
-        indicatorPixel = timeinfo.tm_sec & 0b00000001;
-        Screen.setPixel(0, 0, indicatorPixel);
+        uint8_t newIndicatorPixel = timeinfo.tm_sec & 0b00000001;
+        if (newIndicatorPixel != indicatorPixel)
+        {
+          indicatorPixel = newIndicatorPixel;
+          Screen.setPixel(0, 0, indicatorPixel);
+        }
       }
       else if (indicatorPixel > 0)
       {

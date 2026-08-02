@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Arduino.h>
+
 // disable if you do not want to have online functionality
 #define ENABLE_SERVER
 
@@ -36,6 +38,10 @@
 #define COLS 16
 #define ROWS 16
 
+// Display constants
+constexpr uint8_t MAX_BRIGHTNESS = 255;
+constexpr uint16_t TOTAL_PIXELS = ROWS * COLS;
+
 // set your city or coords (https://github.com/chubin/wttr.in)
 //#define WEATHER_LOCATION "Rottendorf"
 #define WEATHER_LOCATION "Kurnach"
@@ -60,4 +66,4 @@ enum SYSTEM_STATUS
   LOADING,
 };
 
-extern SYSTEM_STATUS currentStatus;
+extern volatile SYSTEM_STATUS currentStatus;

@@ -7,7 +7,7 @@ AsyncWebSocket ws("/ws");
 
 void sendInfo()
 {
-  DynamicJsonDocument jsonDocument(6144);
+  JsonDocument jsonDocument;
   if (currentStatus == NONE)
   {
     for (int j = 0; j < ROWS * COLS; j++)
@@ -18,25 +18,26 @@ void sendInfo()
 
   jsonDocument["status"] = currentStatus;
   jsonDocument["plugin"] = pluginManager.getActivePlugin()->getId();
+  jsonDocument["persist-plugin"] = pluginManager.getPersistedPluginId();
   jsonDocument["event"] = "info";
   jsonDocument["rotation"] = Screen.currentRotation;
   jsonDocument["brightness"] = Screen.getCurrentBrightness();
   jsonDocument["scheduleActive"] = Scheduler.isActive;
 
-  JsonArray scheduleArray = jsonDocument.createNestedArray("schedule");
+  JsonArray scheduleArray = jsonDocument["schedule"].to<JsonArray>();
   for (const auto &item : Scheduler.schedule)
   {
-    JsonObject scheduleItem = scheduleArray.createNestedObject();
+    JsonObject scheduleItem = scheduleArray.add<JsonObject>();
     scheduleItem["pluginId"] = item.pluginId;
     scheduleItem["duration"] = item.duration / 1000; // Convert milliseconds to seconds
   }
 
-  JsonArray plugins = jsonDocument.createNestedArray("plugins");
+  JsonArray plugins = jsonDocument["plugins"].to<JsonArray>();
 
   std::vector<Plugin *> &allPlugins = pluginManager.getAllPlugins();
   for (Plugin *plugin : allPlugins)
   {
-    JsonObject object = plugins.createNestedObject();
+    JsonObject object = plugins.add<JsonObject>();
 
     object["id"] = plugin->getId();
     object["name"] = plugin->getName();
@@ -47,30 +48,16 @@ void sendInfo()
   jsonDocument.clear();
 }
 
-void sendMinimalInfo()
-{
-  DynamicJsonDocument jsonDocument(6144);
-
-  jsonDocument["status"] = currentStatus;
-  jsonDocument["plugin"] = pluginManager.getActivePlugin()->getId();
-  jsonDocument["event"] = "minimal-info";
-  jsonDocument["rotation"] = Screen.currentRotation;
-  jsonDocument["brightness"] = Screen.getCurrentBrightness();
-  jsonDocument["scheduleActive"] = Scheduler.isActive;
-
-  String output;
-  serializeJson(jsonDocument, output);
-  ws.textAll(output);
-  jsonDocument.clear();
+void sendWSMessage(String &message) {
+  ws.textAll(message);
 }
 
-void onWsEvent(
-    AsyncWebSocket *server,
-    AsyncWebSocketClient *client,
-    AwsEventType type,
-    void *arg,
-    uint8_t *data,
-    size_t len)
+void onWsEvent(AsyncWebSocket *server,
+               AsyncWebSocketClient *client,
+               AwsEventType type,
+               void *arg,
+               uint8_t *data,
+               size_t len)
 {
   if (type == WS_EVT_CONNECT)
   {
@@ -90,7 +77,7 @@ void onWsEvent(
       {
         data[len] = 0;
 
-        DynamicJsonDocument wsRequest(6144);
+        JsonDocument wsRequest;
         DeserializationError error = deserializeJson(wsRequest, data);
 
         if (error)
@@ -108,19 +95,21 @@ void onWsEvent(
           if (!strcmp(event, "plugin"))
           {
             int pluginId = wsRequest["plugin"];
+
             Scheduler.clearSchedule();
             pluginManager.setActivePluginById(pluginId);
-
-            sendMinimalInfo();
+            sendInfo();
           }
           else if (!strcmp(event, "persist-plugin"))
           {
             pluginManager.persistActivePlugin();
+            sendInfo();
           }
           else if (!strcmp(event, "rotate"))
           {
             bool isRight = (bool)!strcmp(wsRequest["direction"], "right");
             Screen.setCurrentRotation((Screen.currentRotation + (isRight ? 1 : 3)) % 4, true);
+            sendInfo();
           }
           else if (!strcmp(event, "info"))
           {
@@ -130,6 +119,7 @@ void onWsEvent(
           {
             uint8_t brightness = wsRequest["brightness"].as<uint8_t>();
             Screen.setBrightness(brightness, true);
+            sendInfo();
           }
         }
       }
