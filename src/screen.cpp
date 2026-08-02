@@ -3,10 +3,10 @@
 #include <algorithm>
 #include "driver/ledc.h"
 
-#define TIMER_INTERVAL_US 3332
-#define GRAY_LEVELS 4 // must be a power of two
-#define SPI_FREQUENCY 12000000
-#define PWM_FREQUENCY 300
+#define TIMER_INTERVAL_US 5000
+#define GRAY_LEVELS 2 // must be a power of two
+#define SPI_FREQUENCY 5000000
+#define PWM_FREQUENCY 196
 
 using namespace std;
 
@@ -245,6 +245,27 @@ void Screen_::rotate()
 
 void Screen_::onScreenTimer()
 {
+  static uint_least64_t Dimming = false;
+  uint8_t brightness = Screen.getCurrentBrightness();	
+  static unsigned char bits[ROWS * COLS / 8] = {0};
+  static unsigned long spi_bits[(ROWS * COLS + 8 * sizeof(unsigned long) - 1) / 8 / sizeof(unsigned long)] = {0};
+  /*
+  if (brightness > 250) brightness = 250;
+  else if (brightness < 5) brightness = 5;
+
+  if (Dimming) {
+    digitalWrite(PIN_LATCH, LOW);
+    SPI.writeBytes(bits, sizeof(spi_bits));
+    digitalWrite(PIN_LATCH, HIGH);
+
+    timerAlarmWrite(Screen_timer, TIMER_INTERVAL_US * (uint64_t)(1-brightness/255), true);
+  } else {
+    Screen._render();
+    timerAlarmWrite(Screen_timer, TIMER_INTERVAL_US * (uint64_t)(brightness/255), true);
+  }
+  Dimming++;
+  if (Dimming > 1) Dimming = 0;
+  */
   Screen._render();
 }
 
